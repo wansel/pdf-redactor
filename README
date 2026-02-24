@@ -15,7 +15,7 @@ Script Python automatizado para busca e remoção definitiva (redação) de term
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [git@github.com:wansel/pdf-redactor.git](git@github.com:wansel/pdf-redactor.git)
+    git clone git@github.com:wansel/pdf-redactor.git
     cd pdf-processor
     ```
 
