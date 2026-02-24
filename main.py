@@ -1,53 +1,58 @@
 import fitz  # PyMuPDF
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
 
 def processar_pdfs():
-    # Configurações de caminhos
-    input_dir = Path("./input")
-    output_dir = Path("./output")
-    texto_para_remover = "cpf - nome"
+    # Busca as configurações das variáveis de ambiente
+    texto_para_remover = os.getenv("TEXTO_PARA_REMOVER")
+    input_path = os.getenv("PASTA_INPUT", "./input")
+    output_path = os.getenv("PASTA_OUTPUT", "./output")
 
-    # 1. Localizar todos os PDFs em pastas e subpastas (recursivo)
+    if not texto_para_remover:
+        print("Erro: A variável TEXTO_PARA_REMOVER não foi definida no arquivo .env")
+        return
+
+    input_dir = Path(input_path)
+    output_dir = Path(output_path)
+    
     arquivos_pdf = list(input_dir.rglob("*.pdf"))
     
     if not arquivos_pdf:
-        print("Nenhum arquivo PDF encontrado na pasta ./input")
+        print(f"Nenhum PDF encontrado em {input_dir}")
         return
 
-    print(f"Encontrados {len(arquivos_pdf)} arquivos para processar.")
+    print(f"Iniciando processamento de {len(arquivos_pdf)} arquivos...")
 
     for caminho_entrada in arquivos_pdf:
-        # 2. Definir o caminho de saída espelhando a estrutura original
-        # O .relative_to(input_dir) pega apenas a parte do caminho após './input'
         caminho_relativo = caminho_entrada.relative_to(input_dir)
         caminho_saida = output_dir / caminho_relativo
-
-        # 3. Garantir que a pasta de destino exista
         caminho_saida.parent.mkdir(parents=True, exist_ok=True)
 
-        print(f"Processando: {caminho_relativo}...")
-
         try:
-            # 4. Lógica de Redação (o que você já tinha)
             doc = fitz.open(caminho_entrada)
-            houve_alteracao = False
+            
+            # Aplica limpeza de metadados (opcional, mas recomendado)
+            # doc.scrub(common_metadata=True)
 
             for page in doc:
                 areas = page.search_for(texto_para_remover)
                 if areas:
-                    houve_alteracao = True
                     for area in areas:
-                        page.add_redact_annot(area, fill=(1, 1, 1))  # Cor branca
+                        # Redige a área (apaga o conteúdo de fato)
+                        page.add_redact_annot(area, fill=(1, 1, 1))
                     page.apply_redactions()
 
-            # 5. Salvar o arquivo processado
-            doc.save(camin_saida, garbage=4, deflate=True)
+            # Salva com compressão
+            doc.save(caminho_saida, garbage=4, deflate=True)
             doc.close()
+            print(f"Sucesso: {caminho_relativo}")
             
         except Exception as e:
-            print(f"Erro ao processar {caminho_entrada}: {e}")
-
-    print("\nConcluído! Verifique a pasta ./output")
+            print(f"Erro em {caminho_relativo}: {e}")
 
 if __name__ == "__main__":
     processar_pdfs()
